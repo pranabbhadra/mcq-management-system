@@ -29,5 +29,8 @@ Then run the command
 ```sh
 $ npm start
 or
-$ odemon app.js
+$ nodemon app.js
 ```
+
+### Run the project
+ - http://localhost:3000
