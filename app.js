@@ -36,6 +36,10 @@ app.use(
   );
 // Router
 app.use(router)
+// Handle 404 - Route Not Found
+app.use((req, res, next) => {
+    res.status(404).render('404', { errorMessage: 'Page not found' });
+});
 
  mongoose();
 // Start the Server
