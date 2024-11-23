@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="text-center mb-4">MCQ Dashboard</h1>
+
+    <!-- Add MCQ Button -->
+    <!-- <a href="/add" class="btn btn-success mb-4">Add New MCQ</a>
+    <a href="/logout" class="btn btn-danger mb-4">Logout</a> -->
+    <div class="row mb-4">
+        <div class="col d-flex justify-content-between align-items-center">
+          <!-- Add New MCQ Button -->
+          <a href="/add" class="btn btn-success">Add New MCQ</a>
+      
+            <h1>Welcome, <%= user.username %>!</h1>
+          <!-- Logout Button -->
+          <a href="/logout" class="btn btn-danger">Logout</a>
+        </div>
+      </div>
+
+    <% if (errorMessage) { %>
+      <div class="alert alert-danger" role="alert">
+        <%= errorMessage %>
+      </div>
+    <% } %>
+
+    <table class="table table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Created By</th>
+          <th>Question</th>
+          <th>Options</th>
+          <th>Correct Answer</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (mcqs.length > 0) { %>
+          <% mcqs.forEach((mcq, index) => { %>
+            <tr>
+              <td><%= index + 1 %></td>
+              <td><%= mcq.user?.username || 'Unknown' %></td>
+              <td><%= mcq.question %></td>
+              <td>
+                <ul>
+                  <% mcq.options.forEach(option => { %>
+                    <li><%= option %></li>
+                  <% }); %>
+                </ul>
+              </td>
+              <td><%= mcq.correctAnswer %></td>
+              <td>
+                <a href="/edit/<%= mcq._id %>" class="btn btn-warning">Edit</a>
+                <a href="/delete/<%= mcq._id %>" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this MCQ?')">Delete</a>
+              </td>
+            </tr>
+          <% }); %>
+        <% } else { %>
+          <tr>
+            <td colspan="5" class="text-center">No MCQs available.</td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
