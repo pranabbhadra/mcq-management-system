@@ -157,8 +157,11 @@ exports.editMCQ = async (req, res) => {
   exports.updateMCQ = async (req, res) => {
     const { id } = req.params;
     const { question, options, correctAnswer } = req.body;
+    console.log('options',options);
+    
+    const optionsArray = options.split(',').map(option => option.trim());
     try {
-      await MCQ.findByIdAndUpdate(id, { question, options, correctAnswer });
+      await MCQ.findByIdAndUpdate(id, { question, options:optionsArray, correctAnswer });
       res.redirect('/dashboard'); // Redirect back to the dashboard
     } catch (error) {
       console.error('Error updating MCQ:', error);
