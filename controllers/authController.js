@@ -1,6 +1,10 @@
-const User = require('../models/User'); // Import the User model
-const MCQ = require('../models/MCQ'); // Import the MCQ model
-const bcrypt = require('bcrypt'); // For password hashing
+const User = require('../models/User'); 
+const MCQ = require('../models/MCQ'); 
+const Option = require('../models/Option');
+const CorrectAnswer = require('../models/CorrectAnswer');
+const mongoose = require('mongoose');
+
+const bcrypt = require('bcrypt');
 
 // Controller for handling signup
 exports.signup = async (req, res) => {
@@ -20,7 +24,6 @@ exports.signup = async (req, res) => {
   }
 
   try {
-    // Check if the email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.render('auth/signup', {
@@ -35,7 +38,7 @@ exports.signup = async (req, res) => {
     const newUser = new User({
       username,
       email,
-      password: hashedPassword, // Save hashed password
+      password: hashedPassword, 
     });
 
     await newUser.save();
@@ -81,13 +84,11 @@ exports.login = async (req, res) => {
             _id: user._id,
             email: user.email,
             username: user.username,
-            // You can store any other user data here
           };
     
     }
 
-    // Successful login logic (set session or token)
-    res.redirect('/dashboard'); // Redirect to dashboard or another protected route
+    res.redirect('/dashboard'); 
   } catch (error) {
     console.error(error);
     res.render('auth/login', {
@@ -100,11 +101,54 @@ exports.login = async (req, res) => {
 // Dashboard Controller
 exports.dashboard = async (req, res) => {
   try {
-    // Fetch all MCQs from the database
-    const mcqs = await MCQ.find().populate('user', 'username email');
-    console.log(mcqs);
-    // Render the dashboard view with the MCQs
-    res.render('dashboard', { mcqs, errorMessage: null, user: req.user  });
+    const mcqs = await MCQ.aggregate([
+      {
+        $lookup: {
+          from: 'users', 
+          localField: 'user', 
+          foreignField: '_id', 
+          as: 'user', 
+        },
+      },
+      {
+        $lookup: {
+          from: 'options', 
+          localField: '_id', 
+          foreignField: 'mcq',
+          as: 'options',
+        },
+      },
+      {
+        $lookup: {
+          from: 'correctanswers', 
+          localField: '_id', 
+          foreignField: 'mcq', 
+          as: 'correctAnswer', 
+        },
+      },
+      {
+        $unwind: { path: '$user'}, 
+      },
+      {
+        $unwind: { path: '$correctAnswer'}, 
+      },
+      {
+        $project: {
+          question: 1,
+          user: { username: 1, email: 1 }, 
+          options: { text: 1 }, 
+          correctAnswer: { text: 1 }, 
+        },
+      },
+    ]);
+
+    console.log('mcqs:', mcqs);
+    
+    res.render('dashboard', {
+      mcqs,
+      errorMessage: null,
+      user: req.user,
+    });
   } catch (error) {
     console.error('Error fetching MCQs:', error);
     res.render('dashboard', { mcqs: [], errorMessage: 'Failed to load MCQs. Please try again later.' });
@@ -116,42 +160,117 @@ exports.addMCQ = (req, res) => {
     res.render('add', { errorMessage: null });
   };
   
-  // Add new MCQ in the database
   exports.createMCQ = async (req, res) => {
     const { question, options, correctAnswer } = req.body;
     const optionsArray = options.split(',').map(option => option.trim());
   
     try {
+      // Validate if correctAnswer is one of the options
+      if (!optionsArray.includes(correctAnswer)) {
+        return res.render('add', { errorMessage: 'Correct answer must be one of the options provided.' });
+      }
+  
       const newMCQ = new MCQ({
         question,
-        options: optionsArray,
-        correctAnswer,
         user: req.user._id,
       });
-  
       await newMCQ.save();
-      res.redirect('dashboard'); // Redirect to the dashboard after adding MCQ
+  
+      const savedOptions = await Promise.all(
+        optionsArray.map(optionText =>
+          new Option({ text: optionText, mcq: newMCQ._id }).save()
+        )
+      );
+  
+      const savedCorrectAnswer = await new CorrectAnswer({
+        text: correctAnswer,
+        mcq: newMCQ._id,
+      }).save();
+  
+      res.redirect('dashboard'); 
     } catch (error) {
       console.error('Error creating MCQ:', error);
       res.render('add', { errorMessage: 'Failed to add MCQ. Please try again.' });
     }
   };
+ 
   
 
 // Edit Controller to handle the editing of MCQs
+
 exports.editMCQ = async (req, res) => {
-    const { id } = req.params;
-    try {
-      const mcq = await MCQ.findById(id);
-      if (!mcq) {
-        return res.redirect('/dashboard'); // Redirect if MCQ not found
-      }
-      res.render('edit', { mcq, errorMessage: null }); // Render the edit page with the current MCQ data
-    } catch (error) {
-      console.error('Error fetching MCQ for editing:', error);
-      res.redirect('/dashboard');
+  const { id } = req.params;
+
+  try {
+    let errorMessage = null;
+    if (req.query.error && req.query.error == 'ansNotMatched') {
+        errorMessage = "Correct answer must be one of the options provided.";
     }
-  };
+    const mcq = await MCQ.aggregate([
+      {
+        $match: { _id:new mongoose.Types.ObjectId(id) },  // Match by the MCQ id
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      {
+        $lookup: {
+          from: 'options',
+          localField: '_id',
+          foreignField: 'mcq',
+          as: 'options',
+        },
+      },
+      {
+        $lookup: {
+          from: 'correctanswers',
+          localField: '_id',
+          foreignField: 'mcq',
+          as: 'correctAnswer',
+        },
+      },
+      {
+        $unwind: { path: '$user' },  
+      },
+      {
+        $unwind: { path: '$correctAnswer' },  
+      },
+      {
+        $project: {
+          question: 1,
+          user: { username: 1, email: 1 },
+          options: { text: 1 },
+          correctAnswer: { text: 1 },
+        },
+      },
+    ]);
+
+    // If MCQ not found
+    if (!mcq || mcq.length === 0) {
+      console.error('MCQ not found');
+      return res.redirect('/dashboard');
+    }
+
+    // Since the result is an array, get the first (and only) item
+    const mcqData = mcq[0];
+
+    console.log('MCQ data:', mcqData);
+
+    // Render the edit view with the populated MCQ data
+    res.render('edit', { mcq: mcqData, errorMessage: errorMessage });
+  } catch (error) {
+    console.error('Error fetching MCQ for editing:', error);
+    res.redirect('/dashboard');
+  }
+};
+
+
+
   
   // Update Controller to save edited MCQ
   exports.updateMCQ = async (req, res) => {
@@ -161,11 +280,34 @@ exports.editMCQ = async (req, res) => {
     
     const optionsArray = options.split(',').map(option => option.trim());
     try {
-      await MCQ.findByIdAndUpdate(id, { question, options:optionsArray, correctAnswer });
-      res.redirect('/dashboard'); // Redirect back to the dashboard
+
+      if (!optionsArray.includes(correctAnswer)) {
+        return res.redirect(`/edit/${id}?error=ansNotMatched`);  
+      }
+
+
+    await Option.deleteMany({ mcq: id }); 
+    const savedOptions = await Promise.all(
+      optionsArray.map(optionText =>
+        new Option({ text: optionText, mcq: id }).save()
+      )
+    );
+
+    await CorrectAnswer.deleteMany({ mcq: id });
+    // Save new correct answer
+    await new CorrectAnswer({
+      text: correctAnswer,
+      mcq: id,
+    }).save();
+
+    await MCQ.findByIdAndUpdate(id, { question });
+
+      res.redirect('/dashboard'); 
     } catch (error) {
-      console.error('Error updating MCQ:', error);
-      res.render('edit', { errorMessage: 'Failed to update MCQ. Please try again.' });
+      console.error('Error updating MCQ:', error);res.render('edit', {
+        errorMessage: 'Failed to update MCQ. Please try again.',
+        mcq: { _id: id, question, options: optionsArray, correctAnswer }, 
+      });
     }
   };
   
@@ -173,8 +315,11 @@ exports.editMCQ = async (req, res) => {
   exports.deleteMCQ = async (req, res) => {
     const { id } = req.params;
     try {
+      await Option.deleteMany({ mcq: id });
+      await CorrectAnswer.deleteMany({ mcq: id });
       await MCQ.findByIdAndDelete(id);
-      res.redirect('/dashboard'); // Redirect to dashboard after deletion
+
+      res.redirect('/dashboard'); 
     } catch (error) {
       console.error('Error deleting MCQ:', error);
       res.redirect('/dashboard');

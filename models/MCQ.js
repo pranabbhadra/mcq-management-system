@@ -2,13 +2,14 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 // MCQ Schema
-const mcqSchema = new Schema({
+const MCQSchema = new mongoose.Schema({
   question: { type: String, required: true },
-  options: [String],
-  correctAnswer: { type: String, required: true },
-  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },  // Reference to User
-}, { timestamps: true });
+  options: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Option' }],
+  correctAnswer: { type: mongoose.Schema.Types.ObjectId, ref: 'CorrectAnswer' },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+});
 
-const MCQ = mongoose.model('MCQ', mcqSchema);
+
+const MCQ = mongoose.model('MCQ', MCQSchema);
 
 module.exports = MCQ;

@@ -6,35 +6,34 @@ const { isAuthenticated } = require('../middlewares/authMiddleware');
 
 // Signup Routes
 router.get('/signup', (req, res) => {
-  res.render('auth/signup', { errorMessage: null }); // Render the signup page
+  res.render('auth/signup', { errorMessage: null }); 
 });
-router.post('/signup', authController.signup); // Handle signup form submission
+router.post('/signup', authController.signup); 
 
-// Signup Routes
 router.get('/', (req, res) => {
     let errorMessage = null;
     if (req.query.error && req.query.error == 'unauthorized') {
         errorMessage = "Please login to access this page";
     }
-    res.render('auth/login', { errorMessage }); // Render the signup page
+    res.render('auth/login', { errorMessage }); 
   });
 
-router.post('/login', authController.login); // Handle login form submission
+router.post('/login', authController.login); 
 
 router.get('/logout', (req, res) => {
     req.session.destroy((err) => {
       if (err) {
-        return res.redirect('/dashboard');  // In case of error, redirect to dashboard
+        return res.redirect('/dashboard');  
       }
-      res.redirect('/');  // Redirect to login page after logging out
+      res.redirect('/');  
     });
   });
   
 router.get('/dashboard',isAuthenticated, authController.dashboard);
 
 // Add new MCQ route
-router.get('/add',isAuthenticated, authController.addMCQ);  // Render the page for adding MCQ
-router.post('/add',isAuthenticated, authController.createMCQ);  // Handle form submission for creating MCQ
+router.get('/add',isAuthenticated, authController.addMCQ);  
+router.post('/add',isAuthenticated, authController.createMCQ);  
 
 
 // Edit Route

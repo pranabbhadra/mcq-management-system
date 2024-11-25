@@ -33,12 +33,12 @@
 
       <div class="mb-3">
         <label for="options" class="form-label">Options (comma separated)</label>
-        <input type="text" class="form-control" id="options" name="options" placeholder="Example: 2,3,4,5" value="<%= mcq.options.join(', ') %>" required>
+        <input type="text" class="form-control" id="options" name="options" placeholder="Example: 2,3,4,5" value="<%= mcq.options.map(opt => opt.text).join(', ') %>" required>
       </div>
 
       <div class="mb-3">
         <label for="correctAnswer" class="form-label">Correct Answer</label>
-        <input type="text" class="form-control" id="correctAnswer" name="correctAnswer" placeholder="Example: 4" value="<%= mcq.correctAnswer %>" required>
+        <input type="text" class="form-control" id="correctAnswer" name="correctAnswer" placeholder="Example: 4" value="<%= mcq.correctAnswer.text %>" required>
       </div>
 
       <button type="submit" class="btn btn-primary">Update MCQ</button>
